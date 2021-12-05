@@ -12,8 +12,6 @@ namespace vkdev {
     bool LoadGlobalLevelEntryPoints();
     bool LoadInstanceLevelEntryPoints(VkInstance instance);
     bool LoadDeviceLevelEntryPoints(VkDevice device);
-
-    //HINSTANCE vklib;
 }
 
 #endif

@@ -7,13 +7,15 @@ namespace vkdev {
   class Instance {
   public:
     Instance();
+    Instance(const char* app_name);
     ~Instance();
-    void createInstance(const char* name);
 
+    VkInstance& get();
 
   private:
     VkInstance instance_;
     Instance(const Instance& instance);
+    void createInstance(const char* name);
 
   };
 }

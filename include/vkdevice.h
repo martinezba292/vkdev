@@ -6,12 +6,15 @@
 namespace vkdev {
   class Device {
   public:
-    Device();
+    Device(VkInstance& instance);
     ~Device();
 
-    bool initDevice();
+
 
   private:
+    bool createDevice(VkInstance& instance);
+    bool checkPhysicalDeviceProperties(VkPhysicalDevice device, uint32_t queue_family);
+
     VkDevice device_;
 
   };
