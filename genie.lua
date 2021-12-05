@@ -21,9 +21,6 @@ project "VKDev"
   kind "ConsoleApp"
   language "C++"
 
-  --buildoptions{"-m32"}
-
-
   includedirs {
     "./include/",
     "./deps/vulkan/Include"
@@ -35,7 +32,6 @@ project "VKDev"
     "./src/*.cpp",
 
     -- GLFW files --
-    --"./deps/glfw/src/mappings.h",
     "./deps/glfw/src/internal.h",
     "./deps/glfw/src/context.c",
     "./deps/glfw/src/init.c",
@@ -43,6 +39,10 @@ project "VKDev"
     "./deps/glfw/src/monitor.c",
     "./deps/glfw/src/vulkan.c",
     "./deps/glfw/src/window.c",
+    "./deps/glfw/src/egl_context.h",
+    "./deps/glfw/src/egl_context.c",
+    "./deps/glfw/src/osmesa_context.h",
+    "./deps/glfw/src/osmesa_context.c",
     "./deps/glfw/include/GLFW/glfw3.h",
   }
 
@@ -54,7 +54,7 @@ project "VKDev"
     }
 
     files {
-      
+      -- GLFW dependencies for windows --
       "./deps/glfw/src/win32_platform.h",
       "./deps/glfw/src/win32_joystick.h",
       "./deps/glfw/src/win32_init.c",
@@ -83,6 +83,7 @@ project "VKDev"
     links {"dl", "X11", "pthread"}
 
     files {
+    -- GLFW dependencies for linux --
       "./deps/glfw/src/posix_thread.c",
       "./deps/glfw/src/posix_thread.h",
       "./deps/glfw/src/posix_time.h",
@@ -95,10 +96,6 @@ project "VKDev"
       "./deps/glfw/src/x11_window.c",
       "./deps/glfw/src/glx_context.c",
       "./deps/glfw/src/glx_context.h",
-      "./deps/glfw/src/egl_context.h",
-      "./deps/glfw/src/egl_context.c",
-      "./deps/glfw/src/osmesa_context.h",
-      "./deps/glfw/src/osmesa_context.c",
       "./deps/glfw/src/linux_joystick.c",
       "./deps/glfw/src/linux_joystick.h",
     }

@@ -1,4 +1,5 @@
 #include "vkdevice.h"
+#include "vkfunctions.h"
 #include <iostream>
 #include <vector>
 
@@ -24,6 +25,7 @@ bool vkdev::Device::checkPhysicalDeviceProperties(VkPhysicalDevice device, uint3
   uint32_t minor_version = VK_VERSION_MINOR(device_properties.apiVersion);
   uint32_t patch_version = VK_VERSION_PATCH(device_properties.apiVersion);
 
+  return true;
 }
 
 
