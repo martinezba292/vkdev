@@ -2,7 +2,14 @@
 #include "vkloader.h"
 #include "vkfunctions.h"
 
-HINSTANCE vklib;
+#ifdef VK_USE_PLATFORM_WIN32_KHR
+  typedef HINSTANCE LibraryHandle;
+#elif defined (VK_USE_PLATFORM_XCB_KHR) || defined (VK_USE_PLATFORM_XLIB_KHR)
+  #include <dlfcn.h>
+  typedef void* LibraryHandle;
+#endif
+
+LibraryHandle vklib;
 
 bool vkdev::PrepareVulkan()
 {
@@ -23,7 +30,7 @@ bool vkdev::LoadVulkanLibrary()
 #ifdef VK_USE_PLATFORM_WIN32_KHR
   vklib = LoadLibrary(TEXT("vulkan-1.dll"));
 #elif defined (VK_USE_PLATFORM_XCB_KHR) || defined (VK_USE_PLATFORM_XLIB_KHR)
-    VulkanLibrary = dlopen("libvulkan.so", RTLD_NOW);
+  vklib = dlopen("libvulkan.so", RTLD_NOW);
 #endif
 
   if (vklib == nullptr) {
