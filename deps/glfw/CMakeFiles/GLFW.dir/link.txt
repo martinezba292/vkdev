@@ -1,0 +1,2 @@
+/usr/bin/ar qc ../../build/libGLFW.a  CMakeFiles/GLFW.dir/src/posix_thread.c.o CMakeFiles/GLFW.dir/src/posix_time.c.o CMakeFiles/GLFW.dir/src/xkb_unicode.c.o CMakeFiles/GLFW.dir/src/x11_init.c.o CMakeFiles/GLFW.dir/src/x11_monitor.c.o CMakeFiles/GLFW.dir/src/x11_window.c.o CMakeFiles/GLFW.dir/src/glx_context.c.o CMakeFiles/GLFW.dir/src/linux_joystick.c.o
+/usr/bin/ranlib ../../build/libGLFW.a
