@@ -40,4 +40,5 @@ ELSEIF (CMAKE_SYSTEM_NAME STREQUAL Windows)
 add_compile_definitions(VK_USE_PLATFORM_WIN32_KHR)
 ENDIF()
 
-target_include_directories(VkDev PUBLIC "${INC_PATH}")
+target_include_directories(VkDev PUBLIC "${INC_PATH}" 
+					"${CMAKE_CURRENT_SOURCE_DIR}/deps/vulkan/Include")
