@@ -78,7 +78,7 @@ bool vkdev::LoadGlobalLevelEntryPoints()
 bool vkdev::LoadInstanceLevelEntryPoints(VkInstance instance)
 {
 #define VK_INSTANCE_LEVEL_FUNCTION(fun)                                                    \
-  if ((fun != (PFN_##fun)vkGetInstanceProcAddr(instance, #fun) )) {                        \
+  if (!(fun = (PFN_##fun)vkGetInstanceProcAddr(instance, #fun) )) {                        \
     std::cout << "Couldn't load an instance level function: " << #fun << "!" << std::endl; \
     return false;                                                                          \
   }
@@ -92,7 +92,7 @@ bool vkdev::LoadInstanceLevelEntryPoints(VkInstance instance)
 bool vkdev::LoadDeviceLevelEntryPoints(VkDevice device)
 {
 #define VK_DEVICE_LEVEL_FUNCTION(fun)                                                    \
-  if ((fun != (PFN_##fun)vkGetDeviceProcAddr(device, #fun) )) {                          \
+  if (!(fun = (PFN_##fun)vkGetDeviceProcAddr(device, #fun) )) {                          \
     std::cout << "Couldn't load a device level function: " << #fun << "!" << std::endl;  \
     return false;                                                                        \
   }

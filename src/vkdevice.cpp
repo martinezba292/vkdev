@@ -13,7 +13,7 @@ vkdev::Device::~Device()
 
 }
 
-bool vkdev::Device::checkPhysicalDeviceProperties(VkPhysicalDevice device, uint32_t queue_family) 
+bool vkdev::Device::checkPhysicalDeviceProperties(VkPhysicalDevice& device, uint32_t queue_family) 
 {
   VkPhysicalDeviceProperties device_properties;
   VkPhysicalDeviceFeatures device_features;
@@ -24,6 +24,18 @@ bool vkdev::Device::checkPhysicalDeviceProperties(VkPhysicalDevice device, uint3
   uint32_t major_version = VK_VERSION_MAJOR(device_properties.apiVersion);
   uint32_t minor_version = VK_VERSION_MINOR(device_properties.apiVersion);
   uint32_t patch_version = VK_VERSION_PATCH(device_properties.apiVersion);
+
+  if (major_version < 1 && device_properties.limits.maxImageDimension2D < 4096) {
+    std::cout << "Physical device: " << device_properties.deviceName << 
+                 "doesn't support required features" << std::endl;
+    return false;
+  }
+
+  uint32_t queue_family_count = 0;
+  vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, nullptr);
+  if (!queue_family_count) {
+    
+  }
 
   return true;
 }
@@ -46,11 +58,10 @@ bool vkdev::Device::createDevice(VkInstance& instance)
     return false;
   }
 
-  VkPhysicalDevice p_device;
   uint32_t queue_family_index = UINT32_MAX;
 
   for (auto device : physical_devices) {
-    if (checkPhysicalDeviceProperties(p_device, queue_family_index)) {
+    if (checkPhysicalDeviceProperties(device, queue_family_index)) {
 
     }
   }

@@ -1,3 +1,8 @@
+/*
+Author: Manuel Martinez Barreiro
+E-mail: martinezba292@gmail.com
+*/
+
 #ifndef __VK_LOADER__
 #define __VK_LOADER__ 1
 

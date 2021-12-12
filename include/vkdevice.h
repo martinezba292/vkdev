@@ -1,3 +1,8 @@
+/*
+Author: Manuel Martinez Barreiro
+E-mail: martinezba292@gmail.com
+*/
+
 #ifndef __VK_DEVICE__ 
 #define __VK_DEVICE__ 1
 #include "vulkan/vulkan.h"
@@ -13,7 +18,7 @@ namespace vkdev {
 
   private:
     bool createDevice(VkInstance& instance);
-    bool checkPhysicalDeviceProperties(VkPhysicalDevice device, uint32_t queue_family);
+    bool checkPhysicalDeviceProperties(VkPhysicalDevice& device, uint32_t queue_family);
 
     VkDevice device_;
 
