@@ -14,13 +14,13 @@ namespace vkdev {
     Device(VkInstance& instance);
     ~Device();
 
-
-
   private:
     bool createDevice(VkInstance& instance);
-    bool checkPhysicalDeviceProperties(VkPhysicalDevice& device, uint32_t queue_family);
+    uint32_t checkPhysicalDeviceProperties(VkPhysicalDevice& device, uint32_t& queue_family);
 
     VkDevice device_;
+    VkQueue deviceQueue_;
+    uint32_t queueFamily_;
 
   };
 }

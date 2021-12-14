@@ -21,7 +21,8 @@ add_executable(VkDev "${SRC_PATH}/main.cpp"
                      "${SRC_PATH}/vkdevice.cpp" 
                      "${SRC_PATH}/vkfunctions.cpp" 
                      "${SRC_PATH}/vkinstance.cpp" 
-                     "${SRC_PATH}/vkloader.cpp")
+                     "${SRC_PATH}/vkloader.cpp"
+                     "${SRC_PATH}/vksurface.cpp")
 
 #Library detection
 INCLUDE(CheckIncludeFiles)

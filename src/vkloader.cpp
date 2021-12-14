@@ -103,7 +103,7 @@ bool vkdev::LoadDeviceLevelEntryPoints(VkDevice device)
 }
 
 
-bool vkdev::CloseLibrary()
+bool vkdev::CloseVulkan()
 {
   if (vklib) {
 #ifdef VK_USE_PLATFORM_WIN32_KHR
@@ -111,7 +111,6 @@ bool vkdev::CloseLibrary()
 #elif defined (VK_USE_PLATFORM_XCB_KHR) || defined (VK_USE_PLATFORM_XLIB_KHR)
     dlclose(vklib);
 #endif
-
     return true;
   }
   return false;

@@ -20,7 +20,7 @@ namespace vkdev {
   private:
     VkInstance instance_;
     Instance(const Instance& instance);
-    void createInstance(const char* name);
+    bool createInstance(const char* name);
 
   };
 }

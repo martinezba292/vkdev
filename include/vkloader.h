@@ -10,7 +10,7 @@ E-mail: martinezba292@gmail.com
 
 namespace vkdev {
     bool PrepareVulkan();
-    bool CloseLibrary();
+    bool CloseVulkan();
 
     bool LoadVulkanLibrary();
     bool LoadExportedEntryPoints();
