@@ -15,7 +15,7 @@ namespace vkdev {
     Instance(const char* app_name);
     ~Instance();
 
-    VkInstance& get();
+    const VkInstance& get() const;
 
   private:
     VkInstance instance_;

@@ -10,8 +10,10 @@ int main() {
     vkdev::PrepareVulkan();
     vkdev::Instance app_instance("VulkanTest");
     vkdev::Window app_window(app_instance);
-    app_window.createWindow(800, 600);
+    app_window.createWindow();
     vkdev::Device app_device(app_instance, app_window);
+
+    size_t s = sizeof(VkCommandBuffer);
 
     int j = 0;
     while(!app_window.windowShouldClose()) {

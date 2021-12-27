@@ -75,7 +75,7 @@ bool vkdev::LoadGlobalLevelEntryPoints()
 }
 
 
-bool vkdev::LoadInstanceLevelEntryPoints(VkInstance instance)
+bool vkdev::LoadInstanceLevelEntryPoints(const VkInstance& instance)
 {
 #define VK_INSTANCE_LEVEL_FUNCTION(fun)                                                    \
   if (!(fun = (PFN_##fun)vkGetInstanceProcAddr(instance, #fun) )) {                        \
@@ -89,7 +89,7 @@ bool vkdev::LoadInstanceLevelEntryPoints(VkInstance instance)
 }
 
 
-bool vkdev::LoadDeviceLevelEntryPoints(VkDevice device)
+bool vkdev::LoadDeviceLevelEntryPoints(const VkDevice& device)
 {
 #define VK_DEVICE_LEVEL_FUNCTION(fun)                                                    \
   if (!(fun = (PFN_##fun)vkGetDeviceProcAddr(device, #fun) )) {                          \

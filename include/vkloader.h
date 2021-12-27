@@ -15,8 +15,8 @@ namespace vkdev {
     bool LoadVulkanLibrary();
     bool LoadExportedEntryPoints();
     bool LoadGlobalLevelEntryPoints();
-    bool LoadInstanceLevelEntryPoints(VkInstance instance);
-    bool LoadDeviceLevelEntryPoints(VkDevice device);
+    bool LoadInstanceLevelEntryPoints(const VkInstance& instance);
+    bool LoadDeviceLevelEntryPoints(const VkDevice& device);
 }
 
 #endif

@@ -35,7 +35,6 @@ add_library(GLFW "${COMMON_FILES}"
                  "${LIB_PATH}/x11_window.c"
                  "${LIB_PATH}/glx_context.c" 
                  "${LIB_PATH}/linux_joystick.c")
-ENDIF()
 
 CHECK_LIBRARY_EXISTS(pthread pthread_key_create "" PTHREAD_LIB)
 IF(PTHREAD_LIB)
@@ -46,6 +45,6 @@ CHECK_LIBRARY_EXISTS(X11 XkbKeycodeToKeysym "" XLIB)
 IF(XLIB)
     target_link_libraries(GLFW PUBLIC X11)
 ENDIF()
-
+ENDIF()
 
 target_include_directories(GLFW PUBLIC "${CMAKE_CURRENT_LIST_DIR}/include")

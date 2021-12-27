@@ -20,7 +20,11 @@ add_executable(VkDev "${SRC_PATH}/main.cpp"
                      "${SRC_PATH}/vkfunctions.cpp" 
                      "${SRC_PATH}/vkinstance.cpp" 
                      "${SRC_PATH}/vkloader.cpp"
-                     "${SRC_PATH}/window.cpp")
+                     "${SRC_PATH}/window.cpp"
+                     "${SRC_PATH}/vkswapchain.cpp"
+                     "${SRC_PATH}/command_buffer.cpp"
+                     "${SRC_PATH}/commands/vkclear.cpp"
+                     "${SRC_PATH}/commands/vkcommand.cpp")
                      
 #Library detection
 INCLUDE(CheckLibraryExists)
@@ -46,4 +50,5 @@ ENDIF()
 target_include_directories(VkDev PUBLIC 
                             "${INC_PATH}" 
 					        "${CMAKE_CURRENT_SOURCE_DIR}/deps/vulkan/Include"
-                            "${CMAKE_CURRENT_SOURCE_DIR}/deps/glfw/include/GLFW")
+                            "${CMAKE_CURRENT_SOURCE_DIR}/deps/glfw/include/GLFW"
+                            "${CMAKE_CURRENT_SOURCE_DIR}/deps/GLM/glm")

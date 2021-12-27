@@ -15,22 +15,24 @@ vkdev::Window::Window(Instance& vkinstance) {
 
 vkdev::Window::~Window() {
   if (window_) {
+    vkDestroySurfaceKHR(app_instance->get(), surface_, nullptr);
     glfwDestroyWindow(window_);
+    
     glfwTerminate();
     window_ = nullptr;
   }
 }
 
-VkSurfaceKHR vkdev::Window::getSurface() {
+const VkSurfaceKHR& vkdev::Window::getSurface() const{
   return surface_;
 }
 
 
-bool vkdev::Window::createWindow(const int32_t width, const int32_t height) {
+bool vkdev::Window::createWindow() {
   glfwInit();
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
   glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-  window_ = glfwCreateWindow(width, height, "VkDev", nullptr, nullptr);
+  window_ = glfwCreateWindow(WINDOW_W, WINDOW_H, "VkDev", nullptr, nullptr);
   VkResult r;
   #if defined (VK_USE_PLATFORM_WIN32_KHR) || (defined VK_USE_PLATFORM_XCB_KHR)
     r = glfwCreateWindowSurface(app_instance->get(), window_, nullptr, &surface_);

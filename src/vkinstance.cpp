@@ -25,7 +25,7 @@ vkdev::Instance::~Instance()
   }
 }
 
-VkInstance& vkdev::Instance::get() 
+const VkInstance& vkdev::Instance::get() const 
 {
   return instance_;
 }
