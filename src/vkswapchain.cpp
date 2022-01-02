@@ -92,7 +92,12 @@ vkdev::SwapChain::SwapChain() {
 /***********************************************************************************************/
 
 vkdev::SwapChain::~SwapChain() {
-
+  if (swapchain_ != VK_NULL_HANDLE) {
+    vkDeviceWaitIdle(deviceOwner_->getDeviceHandle());
+    vkDestroySemaphore(deviceOwner_->getDeviceHandle(), renderingFinished_, nullptr);
+    vkDestroySwapchainKHR(deviceOwner_->getDeviceHandle(), swapchain_, nullptr);
+    swapchain_ = VK_NULL_HANDLE;
+  }
 }
 
 /***********************************************************************************************/
@@ -188,15 +193,22 @@ deviceOwner_ = &device;
 }
 
 
-uint32_t vkdev::SwapChain::getImagesNumber() {
+bool vkdev::SwapChain::getSwapchainImages(std::vector<VkImage>& img) {
   uint32_t image_count;
   VkResult r = vkGetSwapchainImagesKHR(deviceOwner_->getDeviceHandle(), swapchain_, &image_count, nullptr);
-
+  if (r != VK_SUCCESS) {
+    std::cout << "Couldn't get swapchain image number" << std::endl;
+    return false;
+  }
+  
+  img.resize(image_count);
+  r = vkGetSwapchainImagesKHR(deviceOwner_->getDeviceHandle(), swapchain_, &image_count, &img[0]);
   if (r != VK_SUCCESS) {
     std::cout << "Couldn't get swapchain images" << std::endl;
-    return 0;
+    return false;
   }
-  return image_count;
+  
+  return true;
 }
 
 
@@ -208,7 +220,7 @@ bool vkdev::SwapChain::presentNextImage(const CommandBuffer& commands) {
                                      queue->imageAvailableSemaphore_,
                                      VK_NULL_HANDLE, &image_index);
   
-  if (r != VK_SUCCESS || r != VK_SUBOPTIMAL_KHR) {
+  if (r != VK_SUCCESS && r != VK_SUBOPTIMAL_KHR) {
     std::cout << "Problem ocurred during swapchain acquisition!" << std::endl;
     return false;
   }
@@ -232,6 +244,7 @@ bool vkdev::SwapChain::presentNextImage(const CommandBuffer& commands) {
   VkPresentInfoKHR present_info {VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
   present_info.waitSemaphoreCount = 1;
   present_info.pWaitSemaphores = &renderingFinished_;
+  present_info.swapchainCount = 1;
   present_info.pSwapchains = &swapchain_;
   present_info.pImageIndices = &image_index;
 

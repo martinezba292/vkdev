@@ -3,18 +3,79 @@
 #include "vkfunctions.h"
 #include "commands/vkclear.h"
 #include <functional>
+#include "vkdevice.h"
 
 vkdev::CommandBuffer::CommandBuffer(const int& buffer_size) {
-    commandBuffer_.resize(buffer_size);
+    commandBuffer_.resize(buffer_size, VK_NULL_HANDLE);
+    commandPool_ = VK_NULL_HANDLE;
     commandList_.resize(buffer_size);
 }
 
+
 vkdev::CommandBuffer::~CommandBuffer() {
+    destroyCommandBuffers();
 }
+
+bool vkdev::CommandBuffer::destroyCommandBuffers() {
+
+  if (commandList_.size() > 0) {
+    for (auto& cmd_list : commandList_) {
+      for (auto& cmd : cmd_list) {
+        cmd.reset();
+      }
+      cmd_list.clear();
+    }
+    commandList_.clear();
+  }
+  
+  if (commandBuffer_.size() > 0 && commandBuffer_[0] != VK_NULL_HANDLE) {
+    vkDeviceWaitIdle(deviceOwner_->getDeviceHandle());
+    vkFreeCommandBuffers(deviceOwner_->getDeviceHandle(), commandPool_, commandBuffer_.size(), &commandBuffer_[0]);
+    commandBuffer_.clear();
+  }
+  
+  if (commandPool_ != VK_NULL_HANDLE) {
+    vkDestroyCommandPool(deviceOwner_->getDeviceHandle(), commandPool_, nullptr);
+    commandPool_ = VK_NULL_HANDLE;
+    return true;
+  }
+  
+  return false;
+}
+
 
 const VkCommandBuffer& vkdev::CommandBuffer::getCommandBuffer(uint32_t index) const {
     return commandBuffer_[index];
 }
+
+
+bool vkdev::CommandBuffer::createCommandBuffer(const Device* device) {
+
+    deviceOwner_ = device;
+
+    VkCommandPoolCreateInfo pool_cinfo{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
+    const Device::DeviceQueue* queue = device->getDeviceQueue();
+    pool_cinfo.queueFamilyIndex = queue->queueFamily_;
+
+    VkResult r = vkCreateCommandPool(device->getDeviceHandle(), &pool_cinfo, nullptr, &commandPool_);
+    if (r != VK_SUCCESS) {
+        std::cout << "Failed to create command pool" << std::endl;
+        return false;
+    }
+
+    VkCommandBufferAllocateInfo buffer_alloc_info{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
+    buffer_alloc_info.commandPool = commandPool_;
+    buffer_alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    buffer_alloc_info.commandBufferCount = commandBuffer_.size();
+
+    r = vkAllocateCommandBuffers(device->getDeviceHandle(), &buffer_alloc_info, &commandBuffer_[0]);
+    if (r != VK_SUCCESS) {
+        std::cout << "An error ocurred during command buffer allocation" << std::endl;
+        return false;
+    }
+    return true;
+}
+
 
 bool vkdev::CommandBuffer::submitCommand(const Command& command, const uint32_t buffer_order) {
     uint32_t t = command.getCommandType();

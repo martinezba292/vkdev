@@ -25,6 +25,7 @@ vkdev::Device::Device(const Instance& instance, const Window& window)
 {
   device_ = VK_NULL_HANDLE;
   physDevice_ = VK_NULL_HANDLE;
+  deviceQueue_ = nullptr;
   createDevice(instance, window);
 }
 
@@ -32,8 +33,15 @@ vkdev::Device::Device(const Instance& instance, const Window& window)
 
 vkdev::Device::~Device()
 {
+  
+
   if (device_ != VK_NULL_HANDLE) {
     vkDeviceWaitIdle(device_);
+    if (deviceQueue_ != nullptr) {
+      vkDestroySemaphore(device_, deviceQueue_->imageAvailableSemaphore_, nullptr);
+      deviceQueue_.reset();
+      deviceQueue_ = nullptr;
+    }
     vkDestroyDevice(device_, nullptr);
     device_ = VK_NULL_HANDLE;
   }

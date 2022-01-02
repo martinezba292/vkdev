@@ -8,7 +8,7 @@
 namespace vkdev {
   class ClearCmd : public Command {
     public:
-      ClearCmd(const float* rgba, const VkImage& render_img, const uint32_t queue_family);
+      ClearCmd(const float* rgba, const VkImage& render_img, const uint32_t& queue_family);
       ClearCmd(const ClearCmd& cmd);
       ~ClearCmd();
       void record(const VkCommandBuffer& buffer) const override;
