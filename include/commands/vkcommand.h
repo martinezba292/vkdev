@@ -7,7 +7,11 @@
 enum CommandType {
   CommandType_NONE = -1,
   CommandType_Clear = 0,
-  CommandType_MAX = 1,
+  CommandType_BeginRenderPass = 1,
+  CommandType_EndRenderPass,
+  CommandType_BindPipeline,
+  CommandType_Draw,
+  CommandType_MAX,
 };
 
 namespace vkdev {

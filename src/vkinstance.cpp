@@ -19,15 +19,19 @@ vkdev::Instance::Instance(const char* app_name)
 
 vkdev::Instance::~Instance()
 {
-  if (instance_) {
-    vkDestroyInstance(instance_, nullptr);
-    instance_ = VK_NULL_HANDLE;
-  }
+  destroyInstance();
 }
 
 const VkInstance& vkdev::Instance::get() const 
 {
   return instance_;
+}
+
+void vkdev::Instance::destroyInstance() {
+  if (instance_) {
+    vkDestroyInstance(instance_, nullptr);
+    instance_ = VK_NULL_HANDLE;
+  }
 }
 
 bool vkdev::Instance::createInstance(const char* name)

@@ -16,6 +16,7 @@ uint32_t GetSwapChainImageCount(const VkSurfaceCapabilitiesKHR& capabilities, ui
 /////////////////////////////////////////////////////////////////////
 
 VkSurfaceFormatKHR GetSwapChainFormat(const std::vector<VkSurfaceFormatKHR>& surface_formats) {
+  //If format is undefined means that every format is suitable
   if (surface_formats.size() == 1 && surface_formats[0].format == VK_FORMAT_UNDEFINED)
     return {VK_FORMAT_R8G8B8A8_UNORM, VK_COLORSPACE_SRGB_NONLINEAR_KHR};
 
@@ -86,6 +87,8 @@ VkPresentModeKHR GetPresentMode(const std::vector<VkPresentModeKHR>& present_mod
 
 vkdev::SwapChain::SwapChain() {
   swapchain_ = VK_NULL_HANDLE;
+  renderingFinished_ = VK_NULL_HANDLE;
+  imageFormat_ = VK_FORMAT_UNDEFINED;
   deviceOwner_ = nullptr;
 }
 
@@ -166,10 +169,11 @@ deviceOwner_ = &device;
   }
 
   VkSurfaceFormatKHR desired_format = GetSwapChainFormat(formats);
+  imageFormat_ = desired_format.format;
   VkSwapchainCreateInfoKHR swch_create_info {VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
   swch_create_info.surface = window.getSurface();
   swch_create_info.minImageCount = GetSwapChainImageCount(capabilities, n_images);
-  swch_create_info.imageFormat = desired_format.format;
+  swch_create_info.imageFormat = imageFormat_;
   swch_create_info.imageColorSpace = desired_format.colorSpace;
   swch_create_info.imageExtent = GetSwapChainExtent(capabilities);
   swch_create_info.imageArrayLayers = 1;
@@ -209,6 +213,10 @@ bool vkdev::SwapChain::getSwapchainImages(std::vector<VkImage>& img) {
   }
   
   return true;
+}
+
+int32_t vkdev::SwapChain::getImageFormat() const{
+  return imageFormat_;
 }
 
 

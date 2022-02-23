@@ -10,17 +10,27 @@
 
 vkdev::Window::Window(Instance& vkinstance) {
   window_ = nullptr;
+  surface_ = VK_NULL_HANDLE;
   app_instance = &vkinstance;
 }
 
 vkdev::Window::~Window() {
+  destroyWindow();
+}
+
+bool vkdev::Window::destroyWindow() {
   if (window_) {
     vkDestroySurfaceKHR(app_instance->get(), surface_, nullptr);
     glfwDestroyWindow(window_);
     
     glfwTerminate();
+    app_instance = nullptr;
+    surface_ = VK_NULL_HANDLE;
     window_ = nullptr;
+    return true;
   }
+
+  return false;
 }
 
 const VkSurfaceKHR& vkdev::Window::getSurface() const{

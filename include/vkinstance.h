@@ -13,6 +13,7 @@ namespace vkdev {
   public:
     Instance();
     Instance(const char* app_name);
+    void destroyInstance();
     ~Instance();
 
     const VkInstance& get() const;

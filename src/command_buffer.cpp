@@ -2,6 +2,9 @@
 #include <iostream>
 #include "vkfunctions.h"
 #include "commands/vkclear.h"
+#include "commands/cmd_renderpass.h"
+#include "commands/cmd_bindpipeline.h"
+#include "commands/cmd_draw.h"
 #include <functional>
 #include "vkdevice.h"
 
@@ -55,6 +58,8 @@ bool vkdev::CommandBuffer::createCommandBuffer(const Device* device) {
 
     VkCommandPoolCreateInfo pool_cinfo{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
     const Device::DeviceQueue* queue = device->getDeviceQueue();
+    pool_cinfo.flags = (VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT | //Command buffer may be reset
+                        VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);            //Command buffer will be living for a shor time
     pool_cinfo.queueFamilyIndex = queue->queueFamily_;
 
     VkResult r = vkCreateCommandPool(device->getDeviceHandle(), &pool_cinfo, nullptr, &commandPool_);
@@ -81,16 +86,18 @@ bool vkdev::CommandBuffer::submitCommand(const Command& command, const uint32_t 
     uint32_t t = command.getCommandType();
     if (t == CommandType_NONE) return false;
 
+    //Must match CommandType enum order
+    //See vkcommand.h 
     std::shared_ptr<Command> new_cmd;
-    switch(t) {
-        case CommandType_Clear:
-            new_cmd.reset(new ClearCmd(static_cast<const ClearCmd&>(command)));
-        break;
+    std::function<vkdev::Command*(void)>command_detect[] = {
+      [&command](){ return new ClearCmd(static_cast<const ClearCmd&>(command));},
+      [&command](){ return new RenderpassBeginCmd(static_cast<const RenderpassBeginCmd&>(command));},
+      [&command](){ return new RenderpassEndCmd(static_cast<const RenderpassEndCmd&>(command));},
+      [&command](){ return new BindPipelineCmd(static_cast<const BindPipelineCmd&>(command));},
+      [&command](){ return new DrawCmd(static_cast<const DrawCmd&>(command));},
+    };
 
-        default:
-            return false;
-        break;
-    }
+    new_cmd.reset(command_detect[t]());
     commandList_[buffer_order].push_back(std::move(new_cmd));
     return true;
 }

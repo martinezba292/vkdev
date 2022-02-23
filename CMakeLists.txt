@@ -23,7 +23,16 @@ add_executable(VkDev "${SRC_PATH}/main.cpp"
                      "${SRC_PATH}/window.cpp"
                      "${SRC_PATH}/vkswapchain.cpp"
                      "${SRC_PATH}/command_buffer.cpp"
+                     "${SRC_PATH}/renderpass.cpp"
+                     "${SRC_PATH}/vkhelpers.cpp"
+                     "${SRC_PATH}/framebuffer.cpp"
+                     "${SRC_PATH}/pipeline_resources.cpp"
+                     "${SRC_PATH}/vkbuffer.cpp"
+                     "${SRC_PATH}/internal/internal_resources.cpp"
                      "${SRC_PATH}/commands/vkclear.cpp"
+                     "${SRC_PATH}/commands/cmd_renderpass.cpp"
+                     #"${SRC_PATH}/commands/cmd_bindpipeline.cpp"
+                     #"${SRC_PATH}/commands/cmd_draw.cpp"
                      "${SRC_PATH}/commands/vkcommand.cpp")
                      
 #Library detection
@@ -49,6 +58,7 @@ ENDIF()
 
 target_include_directories(VkDev PUBLIC 
                             "${INC_PATH}" 
+                            "${SRC_PATH}/internal"
 					        "${CMAKE_CURRENT_SOURCE_DIR}/deps/vulkan/Include"
                             "${CMAKE_CURRENT_SOURCE_DIR}/deps/glfw/include/GLFW"
                             "${CMAKE_CURRENT_SOURCE_DIR}/deps/GLM/glm")

@@ -33,18 +33,24 @@ vkdev::Device::Device(const Instance& instance, const Window& window)
 
 vkdev::Device::~Device()
 {
-  
+  destroyDevice();
+}
 
-  if (device_ != VK_NULL_HANDLE) {
-    vkDeviceWaitIdle(device_);
-    if (deviceQueue_ != nullptr) {
-      vkDestroySemaphore(device_, deviceQueue_->imageAvailableSemaphore_, nullptr);
-      deviceQueue_.reset();
-      deviceQueue_ = nullptr;
+
+bool vkdev::Device::destroyDevice() {
+    if (device_ != VK_NULL_HANDLE) {
+      vkDeviceWaitIdle(device_);
+      if (deviceQueue_ != nullptr) {
+        vkDestroySemaphore(device_, deviceQueue_->imageAvailableSemaphore_, nullptr);
+        deviceQueue_.reset();
+        deviceQueue_ = nullptr;
+      }
+      vkDestroyDevice(device_, nullptr);
+      device_ = VK_NULL_HANDLE;
+      return true;
     }
-    vkDestroyDevice(device_, nullptr);
-    device_ = VK_NULL_HANDLE;
-  }
+
+    return false;
 }
 
 /****************************************************************************************/
@@ -69,7 +75,6 @@ const vkdev::Device::DeviceQueue* vkdev::Device::getDeviceQueue() const {
 
 std::shared_ptr<vkdev::Device::DeviceQueue> vkdev::Device::findQueueFamilyWithProperties(const VkPhysicalDevice& device, const QueueFamilyFlags support, 
                                                                                          const uint16_t min_queue, const Window* window_handle/* = nullptr*/) {
-
   uint32_t queue_family_count = 0;
   vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, nullptr);
   if (!queue_family_count) {
@@ -175,7 +180,10 @@ uint32_t vkdev::Device::ratePhysicalDeviceProperties(const VkPhysicalDevice& dev
                   device_properties.deviceName << std::endl;
     return device_score >> 1;
   }
-    
+
+  std::cout << "Found device with required properties: " << 
+                device_properties.deviceName << std::endl;
+
   return device_score << 1;
 }
 

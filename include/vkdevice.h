@@ -34,6 +34,7 @@ namespace vkdev {
     ~Device();
 
     bool createDevice(const Instance& instance, const Window& window);
+    bool destroyDevice();
     const VkDevice& getDeviceHandle() const;
     const VkPhysicalDevice& getCurrentPhysicalDevice() const;
     const DeviceQueue* getDeviceQueue() const;
@@ -53,8 +54,8 @@ namespace vkdev {
                                                                const uint16_t min_queue,
                                                                const Window* window_handle = nullptr);
   private:
-    VkPhysicalDevice physDevice_;
     VkDevice device_;
+    VkPhysicalDevice physDevice_;
     std::shared_ptr<DeviceQueue> deviceQueue_;
   };
 }

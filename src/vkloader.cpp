@@ -9,7 +9,7 @@
   typedef void* LibraryHandle;
 #endif
 
-LibraryHandle vklib;
+LibraryHandle vklib = nullptr;
 
 bool vkdev::PrepareVulkan()
 {
@@ -50,7 +50,7 @@ bool vkdev::LoadExportedEntryPoints()
 #endif
 
 #define VK_EXPORTED_FUNCTION( fun )                                               \
-  if ( !(fun = (PFN_##fun)LoadProcAddress(vklib, #fun)) ) {                         \
+  if ( !(fun = (PFN_##fun)LoadProcAddress(vklib, #fun)) ) {                       \
     std::cout << "Couldn't load exported function:" << #fun << "!" << std::endl;  \
     return false;                                                                 \
   }

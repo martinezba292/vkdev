@@ -14,6 +14,7 @@ class Instance;
       Window(Instance&);
       ~Window();
       bool createWindow();
+      bool destroyWindow();
       bool windowShouldClose() const;
       const VkSurfaceKHR& getSurface() const;
     private:
