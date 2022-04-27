@@ -16,30 +16,30 @@ struct VertexInputDescriptors {
   std::vector<VkVertexInputAttributeDescription> attribDescription;
 };
 
-enum ParamsType {
-  ParamsType_NONE = 0,
-  ParamsType_DescriptorSets = 1,
-  ParamsType_PushConstants = 2
-};
+// enum ParamsType {
+//   ParamsType_NONE = 0,
+//   ParamsType_DescriptorSets = 1,
+//   ParamsType_PushConstants = 2
+// };
 
-struct ShaderParams {
-  ParamsType type;
-  union Params {
-    Params(){}
-    ~Params(){}
-    std::vector<VkDescriptorSetLayout> setLayout;
-    std::vector<VkPushConstantRange> pushConstants;
-  }layoutConfig;
-};
+// struct ShaderParams {
+//   ParamsType type;
+//   union Params {
+//     Params(){}
+//     ~Params(){}
+//     std::vector<VkDescriptorSetLayout> setLayout;
+//     std::vector<VkPushConstantRange> pushConstants;
+//   }layoutConfig;
+// };
 
 namespace vkdev {
-  class Device;
   class RenderPass;
+  class PipelineDescriptor;
   class PipelineResources {
     public:
       PipelineResources();
       ~PipelineResources();
-      bool createGraphicsPipeline(const Device& device, 
+      bool createGraphicsPipeline(const PipelineDescriptor& descriptor,
                                   const RenderPass& rp, 
                                   const VertexParams& vertex_info,
                                   const uint32_t& v_width,
@@ -48,14 +48,13 @@ namespace vkdev {
                                   const char* f_shader);
 
       const VkPipeline& getHandle()const;
+      const VkPipelineLayout& getLayout() const;
       bool destroyPipelineResources();
-      bool createPipelineLayout(const Device& device, const ShaderParams& params);
-
+      //bool createPipelineLayout(const Device& device, const ShaderParams& params);
 
     private:
       VkPipeline pipeline_;
       VkPipelineLayout pipelineLayout_;
-      const VkDevice* deviceOwner_;
   };
 }
 

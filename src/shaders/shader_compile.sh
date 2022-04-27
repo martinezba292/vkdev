@@ -9,7 +9,10 @@ $GLSLANG $vertex -o ./spirv/${vertex_shaders[$i]}_vert.spv
 let "i++"
 done
 
-fragment_shaders=("test")
+fragment_shaders=(
+                  "test"
+                  "stexture"
+                 )
 i=0
 for fragment in ./glsl/*.frag; do
 $GLSLANG $fragment -o ./spirv/${fragment_shaders[$i]}_frag.spv

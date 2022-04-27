@@ -4,9 +4,6 @@
 #define GLFW_INCLUDE_VULKAN
 #include "glfw3.h"
 
-#define WINDOW_W 800
-#define WINDOW_H 600
-
 namespace vkdev {
 class Instance;
   class Window {
@@ -15,12 +12,16 @@ class Instance;
       ~Window();
       bool createWindow();
       bool destroyWindow();
+      void input();
       bool windowShouldClose() const;
       const VkSurfaceKHR& getSurface() const;
+      const GLFWwindow* getWindow() const;
+      
     private:
       GLFWwindow* window_;
       Instance* app_instance;
       VkSurfaceKHR surface_;
+      int32_t close_;
     };
 }
 

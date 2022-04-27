@@ -17,7 +17,7 @@ namespace vkdev {
       };
 
     private:
-    const VkPipeline* pipeline_;
+      const VkPipeline* pipeline_;
   };
 }
 

@@ -5,21 +5,65 @@
 #include <vector>
 #include <stdexcept>
 #include <iostream>
+#include <cstring>
 
 vkdev::Instance::Instance() 
 {
   instance_ = VK_NULL_HANDLE;
+  debugMessenger_ = VK_NULL_HANDLE;
+  validationLayers_ = false;
   createInstance("Vulkan Application");
 }
 
-vkdev::Instance::Instance(const char* app_name) 
+vkdev::Instance::Instance(const char* app_name, bool enableDebugMessages) 
 {
+  validationLayers_ = enableDebugMessages;
   createInstance(app_name);
 }
 
 vkdev::Instance::~Instance()
 {
   destroyInstance();
+}
+
+bool vkdev::Instance::checkValidationLayerSupport() {
+  uint32_t layerCount;
+  vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+
+  std::vector<VkLayerProperties> availableLayers(layerCount);
+  vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+
+  for (const char* layerName : validationLayers) {
+    bool layerFound = false;
+
+    for (const auto& layerProperties : availableLayers) {
+        if (strcmp(layerName, layerProperties.layerName) == 0) {
+            layerFound = true;
+            break;
+        }
+    }
+
+    if (!layerFound) {
+        return false;
+    }
+  }
+  return true;
+}
+
+void vkdev::Instance::setupDebugMessenger() {
+  if (!validationLayers_) return;
+
+  VkDebugUtilsMessengerCreateInfoEXT createInfo{};
+  createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+  createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+  createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+  createInfo.pfnUserCallback = debugCallback;
+  createInfo.pUserData = nullptr; // Optional
+
+  // if (vkCreateDebugUtilsMessengerEXT(instance_, &createInfo, nullptr, &debugMessenger_) != VK_SUCCESS) {
+  //   std::cout << "Failed to create debug messenger" << std::endl;
+  // }
+
 }
 
 const VkInstance& vkdev::Instance::get() const 
@@ -59,6 +103,8 @@ bool vkdev::Instance::createInstance(const char* name)
 #endif
   };
 
+
+
   for (auto extension : instance_extensions) {
     if (!checkExtensionSupport(extension, available_extensions)) {
       std::cout << "Extension with name " << extension << " is not supported by instance" << std::endl;
@@ -66,6 +112,14 @@ bool vkdev::Instance::createInstance(const char* name)
     }
   }
 
+  if (validationLayers_ && !checkValidationLayerSupport()) {
+      std::cout << "validation layers requested, but not available!" << std::endl;
+  }
+  
+  if (validationLayers_)
+    instance_extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+
+  //auto extensions = getRequiredExtensions(validationLayers_);
   VkInstanceCreateInfo instance_create_info = {
   VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,             // VkStructureType            sType
   nullptr,                                            // const void*                pNext
@@ -77,6 +131,20 @@ bool vkdev::Instance::createInstance(const char* name)
   instance_extensions.data()
   };
 
+  if (validationLayers_) {
+    instance_create_info.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());  
+    instance_create_info.ppEnabledLayerNames = validationLayers.data();
+
+    VkDebugUtilsMessengerCreateInfoEXT createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+    createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+    createInfo.pfnUserCallback = debugCallback;
+    createInfo.pUserData = nullptr; // Optional
+
+    instance_create_info.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&createInfo;
+  }
+
   if (vkCreateInstance(&instance_create_info, nullptr, &instance_) != VK_SUCCESS) {
     throw std::runtime_error("failed to create instance");
     return false;
@@ -86,6 +154,8 @@ bool vkdev::Instance::createInstance(const char* name)
     throw std::runtime_error("failed load instance level functions");
     return false;
   }
+
+  setupDebugMessenger();
 
   return true;
 }

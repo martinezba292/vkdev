@@ -18,6 +18,7 @@ namespace vkdev {
 
     private:
       VkRenderPass renderPass_;
+      ImageFormat depthFormat_;
       const DeviceHandle* deviceOwner_;
   };
 }

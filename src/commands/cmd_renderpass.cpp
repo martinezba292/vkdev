@@ -1,15 +1,15 @@
 #include "commands/cmd_renderpass.h"
 #include "renderpass.h"
 #include "framebuffer.h"
+#include <array>
 
 
 vkdev::RenderpassBeginCmd::RenderpassBeginCmd(const RenderPass& renderpass, 
                                               const Framebuffer& framebuffer,
                                               const float* rgba) {
   type_ = CommandType_BeginRenderPass;
-  attachmentRef_ = &framebuffer.getHandle();
+  attachmentRef_ = &framebuffer;
   renderPass_ = &renderpass.getHandle();
-  size_ = framebuffer.getFramebufferSize();
   clearColor_ = {rgba[0], rgba[1], rgba[2], rgba[3]};
 }
 
@@ -20,31 +20,28 @@ vkdev::RenderpassBeginCmd::~RenderpassBeginCmd() {
 
 void vkdev::RenderpassBeginCmd::record(const VkCommandBuffer& buffer) const {
 
-  VkClearValue clear {
-    {clearColor_},
-  };
+  std::array<VkClearValue, 2> clear;
+  clear[0].color = clearColor_;
+  clear[1].depthStencil = {1.0f, 0};
+    
+  auto size = attachmentRef_->getFramebufferSize();
   VkRenderPassBeginInfo renderpass_begin_i {
     VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
     nullptr,
     *renderPass_,
-    *attachmentRef_,
+    attachmentRef_->getHandle(),
     {
       {
         0, 0
       },
       {
-      size_.x, size_.y
+        size.x, size.y
       }
     },
-    1,
-    &clear
+    static_cast<uint32_t>(clear.size()),
+    &clear[0]
   };
 
   vkCmdBeginRenderPass(buffer, &renderpass_begin_i, VK_SUBPASS_CONTENTS_INLINE);
   
 }
-
-
-// void vkdev::RenderpassEndCmd::record(const VkCommandBuffer& buffer) const {
-//   vkCmdEndRenderPass(buffer);
-// }

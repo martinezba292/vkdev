@@ -1,10 +1,10 @@
 #include "pipeline_resources.h"
 #include "vkhelpers.h"
-#include "vkdevice.h"
 #include "vkfunctions.h"
 #include "renderpass.h"
 #include <iostream>
-#include <functional>
+#include "internal_resources.h"
+#include "pipeline_descriptor.h"
 
 vkdev::PipelineResources::PipelineResources() {
   pipeline_ = VK_NULL_HANDLE;
@@ -19,7 +19,11 @@ const VkPipeline& vkdev::PipelineResources::getHandle() const{
   return pipeline_;
 }
 
-bool vkdev::PipelineResources::createGraphicsPipeline(const Device& device,
+const VkPipelineLayout& vkdev::PipelineResources::getLayout() const {
+  return pipelineLayout_;
+}
+
+bool vkdev::PipelineResources::createGraphicsPipeline(const PipelineDescriptor& descriptor,
                                                       const RenderPass& rp,
                                                       const VertexParams& vertex_info,
                                                       const uint32_t& v_width,
@@ -27,14 +31,14 @@ bool vkdev::PipelineResources::createGraphicsPipeline(const Device& device,
                                                       const char* v_shader, 
                                                       const char* f_shader) {
 
-  deviceOwner_ = &device.getDeviceHandle();
+  const VkDevice& deviceh = ResourceManager::GetResources()->device_;
 
   VkShaderModule vertex_stage;
-  if (!createShaderModule(device.getDeviceHandle(), v_shader, vertex_stage))
+  if (!createShaderModule(deviceh, v_shader, vertex_stage))
     return false;
 
   VkShaderModule fragment_stage;
-  if (!createShaderModule(device.getDeviceHandle(), f_shader, fragment_stage))
+  if (!createShaderModule(deviceh, f_shader, fragment_stage))
     return false;
 
   std::vector<VkPipelineShaderStageCreateInfo> shader_stage_ci = {
@@ -75,11 +79,10 @@ bool vkdev::PipelineResources::createGraphicsPipeline(const Device& device,
     VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
     nullptr,
     0,
-    VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP,
+    VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
     VK_FALSE
    };
 
-   //const float framebuffer_size = 300.0f;
   
   //Not using Dynamic state so viewport and scissor can be declared static
    VkViewport viewport {
@@ -163,11 +166,37 @@ bool vkdev::PipelineResources::createGraphicsPipeline(const Device& device,
     {0.0f, 0.0f, 0.0f, 0.0f}
   };
 
-  ShaderParams params{ParamsType_NONE};
-  //VkDescriptorSetLayout* desc = params.layoutConfig.setLayout.data();
-  if (!createPipelineLayout(device, params)) {
+  VkPipelineDepthStencilStateCreateInfo depth_stencil_ci {
+    VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO, // VkStructureType                            sType;
+    nullptr,                                                    // const void*                                pNext;                                                          
+    0,                                                          // VkPipelineDepthStencilStateCreateFlags flags;
+    VK_TRUE,                                                    // VkBool32                               depthTestEnable;      
+    VK_TRUE,                                                    // VkBool32                               depthWriteEnable;      
+    VK_COMPARE_OP_LESS,                                         // VkCompareOp                            depthCompareOp;                
+    VK_FALSE,                                                   // VkBool32                               depthBoundsTestEnable;      
+    VK_FALSE,                                                   // VkBool32                               stencilTestEnable;      
+    {},                                                         // VkStencilOpState                       front;
+    {},                                                         // VkStencilOpState                       back;
+    0.0f,                                                       // float                                  minDepthBounds;  
+    1.0f                                                        // float                                  maxDepthBounds;  
+  };
+
+  std::vector<VkDescriptorSetLayout> layouts;
+  descriptor.getDescriptorLayout(layouts);
+
+  VkPipelineLayoutCreateInfo pipe_layout_ci {
+    VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+    nullptr,
+    0,
+    static_cast<uint32_t>(layouts.size()),
+    &layouts[0]
+  };
+
+  VkResult r = vkCreatePipelineLayout(deviceh, &pipe_layout_ci, nullptr, &pipelineLayout_);
+  if (r != VK_SUCCESS) {
+    std::cout << "An error ocurred during pipeline layout creation" << std::endl;
     return false;
-  }  
+  }
 
   VkGraphicsPipelineCreateInfo graphics_pipe_ci {
     VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
@@ -181,7 +210,7 @@ bool vkdev::PipelineResources::createGraphicsPipeline(const Device& device,
     &pipeline_viewport_ci,
     &pipe_rasterization_ci,
     &pipe_multisample_ci,
-    nullptr,
+    &depth_stencil_ci,
     &color_blend_ci,
     nullptr,
     pipelineLayout_,
@@ -191,61 +220,27 @@ bool vkdev::PipelineResources::createGraphicsPipeline(const Device& device,
     -1
   };
   
-  VkResult r = vkCreateGraphicsPipelines(*deviceOwner_, VK_NULL_HANDLE, 1, &graphics_pipe_ci, nullptr, &pipeline_);
+  r = vkCreateGraphicsPipelines(deviceh, VK_NULL_HANDLE, 1, &graphics_pipe_ci, nullptr, &pipeline_);
   if (r != VK_SUCCESS) {
     std::cout << "Couldn't create graphics pipeline" << std::endl;
+    destroyPipelineResources();
     return false;
   }
 
-  vkDestroyShaderModule(*deviceOwner_, vertex_stage, nullptr);
-  vkDestroyShaderModule(*deviceOwner_, fragment_stage, nullptr);
+  vkDestroyShaderModule(deviceh, vertex_stage, nullptr);
+  vkDestroyShaderModule(deviceh, fragment_stage, nullptr);
 
   return true;
 }
 
-
-bool vkdev::PipelineResources::createPipelineLayout(const Device& device, const ShaderParams& params) {
-  if (pipelineLayout_ != VK_NULL_HANDLE) {
-    std::cout << "Pipeline layout already created. Remove existing one in order to create another" << std::endl;    
-    return false;
-  }
-
-  VkPipelineLayoutCreateInfo pipe_layout_ci {
-    VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-    nullptr,
-    0
-  };
-
-  switch(params.type) {
-    case ParamsType_DescriptorSets: {
-      pipe_layout_ci.setLayoutCount = params.layoutConfig.setLayout.size();
-      pipe_layout_ci.pSetLayouts = params.layoutConfig.setLayout.data();    
-      break;
-    }
-    case ParamsType_PushConstants: {
-      pipe_layout_ci.pushConstantRangeCount = params.layoutConfig.pushConstants.size();
-      pipe_layout_ci.pPushConstantRanges = params.layoutConfig.pushConstants.data();
-      break;
-    }
-    default:
-    break;
-  }
-  
-  VkResult r = vkCreatePipelineLayout(device.getDeviceHandle(), &pipe_layout_ci, nullptr, &pipelineLayout_);
-  if (r != VK_SUCCESS) {
-    std::cout << "Couldn't create pipeline layout" << std::endl;
-    return false;
-  }
-
-  return true;
-}
 
 bool vkdev::PipelineResources::destroyPipelineResources() {
+  const VkDevice& deviceh = ResourceManager::GetResources()->device_;
   if (pipelineLayout_ != VK_NULL_HANDLE) {
-    vkDestroyPipelineLayout(*deviceOwner_, pipelineLayout_, nullptr);
+    vkDestroyPipelineLayout(deviceh, pipelineLayout_, nullptr);
     pipelineLayout_ = VK_NULL_HANDLE;
     if (pipeline_ != VK_NULL_HANDLE) {
-      vkDestroyPipeline(*deviceOwner_, pipeline_, nullptr);
+      vkDestroyPipeline(deviceh, pipeline_, nullptr);
       pipeline_ = VK_NULL_HANDLE;
     }
     return true;

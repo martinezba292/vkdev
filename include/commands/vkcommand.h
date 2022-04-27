@@ -10,7 +10,12 @@ enum CommandType {
   CommandType_BeginRenderPass = 1,
   CommandType_EndRenderPass,
   CommandType_BindPipeline,
+  CommandType_BindVertexBuffer,
+  CommandType_BindIndexBuffer,
+  CommandType_BindDescriptor,
   CommandType_Draw,
+  CommandType_DrawIndexed,
+  CommandType_DrawUI,
   CommandType_MAX,
 };
 
@@ -22,10 +27,10 @@ namespace vkdev {
       ~Command(){}
   
       virtual void record(const VkCommandBuffer& buffer) const = 0;
-      uint32_t getCommandType() const;
+      uint32_t getCommandType() const {return type_;}
     
     protected:
-      CommandType type_;
+     CommandType type_;
 
   };
 }

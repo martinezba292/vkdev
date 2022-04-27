@@ -5,7 +5,7 @@ E-mail: martinezba292@gmail.com
 
 #ifndef __VKDEVICE_H__ 
 #define __VKDEVICE_H__ 1
-#include "vulkan/vulkan.h"
+#include "common_def.h"
 #include <memory>
 
 typedef uint8_t QueueFamilyFlags;
@@ -20,24 +20,19 @@ enum QueueFamilySupport {
 namespace vkdev {
   class Instance;
   class Window;
+  struct DeviceQueue;
   class Device {
   public:
-  struct DeviceQueue {
-    VkPhysicalDevice currentDevice_;
-    VkSemaphore imageAvailableSemaphore_;
-    int16_t queueFamily_;
-    int16_t queueCount_;
-    VkQueue queue_;
-  };
     Device();
     Device(const Instance& instance, const Window& window);
     ~Device();
 
     bool createDevice(const Instance& instance, const Window& window);
     bool destroyDevice();
-    const VkDevice& getDeviceHandle() const;
-    const VkPhysicalDevice& getCurrentPhysicalDevice() const;
-    const DeviceQueue* getDeviceQueue() const;
+    const DeviceHandle& getDeviceHandle() const;
+    const PhysicalDevice& getCurrentPhysicalDevice() const;
+    const DeviceQueue* getGraphicsQueue() const;
+    const DeviceQueue* getPresentQueue() const;
     uint32_t ratePhysicalDeviceProperties(const VkPhysicalDevice& device, const Window& window_surface);
    
    /**
@@ -49,14 +44,10 @@ namespace vkdev {
     * @param window_handle only if present support is required
     * @return true if a queue is found
     */
-    std::shared_ptr<DeviceQueue> findQueueFamilyWithProperties(const VkPhysicalDevice& device,
+    std::unique_ptr<DeviceQueue> findQueueFamilyWithProperties(const VkPhysicalDevice& device,
                                                                const QueueFamilyFlags support,
                                                                const uint16_t min_queue,
                                                                const Window* window_handle = nullptr);
-  private:
-    VkDevice device_;
-    VkPhysicalDevice physDevice_;
-    std::shared_ptr<DeviceQueue> deviceQueue_;
   };
 }
 

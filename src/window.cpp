@@ -11,6 +11,7 @@
 vkdev::Window::Window(Instance& vkinstance) {
   window_ = nullptr;
   surface_ = VK_NULL_HANDLE;
+  close_ = 0;
   app_instance = &vkinstance;
 }
 
@@ -37,9 +38,14 @@ const VkSurfaceKHR& vkdev::Window::getSurface() const{
   return surface_;
 }
 
+const GLFWwindow* vkdev::Window::getWindow() const{
+  return window_;
+}
+
 
 bool vkdev::Window::createWindow() {
   glfwInit();
+  //glfwSwapInterval(0);
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
   glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
   window_ = glfwCreateWindow(WINDOW_W, WINDOW_H, "VkDev", nullptr, nullptr);
@@ -60,8 +66,11 @@ bool vkdev::Window::createWindow() {
   return true;
 }
 
-bool vkdev::Window::windowShouldClose() const {
+void vkdev::Window::input() {
   glfwPollEvents();
-  int state = glfwGetKey(window_, GLFW_KEY_ESCAPE);
-  return (state == GLFW_PRESS);
+  close_ = glfwGetKey(window_, GLFW_KEY_ESCAPE);
+}
+
+bool vkdev::Window::windowShouldClose() const {
+  return (close_ == GLFW_PRESS);
 }

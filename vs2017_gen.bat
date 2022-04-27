@@ -1,1 +1,0 @@
-tools\GENie\genie.exe vs2017

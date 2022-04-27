@@ -1,59 +1,44 @@
 #include "vkbuffer.h"
 #include "internal_resources.h"
-#include "vkdevice.h"
-#include "string.h"
+#include "vkfunctions.h"
 #include <iostream>
+#include <string.h>
+#include "glm.hpp"
 
 
-vkdev::VertexBuffer::VertexBuffer() {
-    bufferId_ = -1;
-    bufferSize_ = 0;
-    bufferHandle_ = VK_NULL_HANDLE;
+vkdev::Buffer::Buffer() {
+  bufferHandle_ = VK_NULL_HANDLE;
+  bufferMemory_ = VK_NULL_HANDLE;
+  bufferSize_ = 0;
 }
 
+ /****************************************************************************/
 
-vkdev::VertexBuffer::~VertexBuffer() {
-
+vkdev::Buffer::Buffer(const Buffer& buffer) {
+  bufferHandle_ = buffer.bufferHandle_;
+  bufferMemory_ = buffer.bufferMemory_;
+  bufferSize_ = buffer.bufferSize_;
 }
 
-bool vkdev::VertexBuffer::loadData(const float* data, const uint32_t& n_data) {
-  if (!data) return false;
+/****************************************************************************/
 
-  bufferId_ = ResourceManager::GetResources()->vertexData_.size();
-  ResourceManager::GetResources()->vertexData_.emplace_back(std::vector<float>(n_data));
-  auto test = ResourceManager::GetResources()->vertexData_.size();
-  auto last = &ResourceManager::GetResources()->vertexData_.back();
-  last->reserve(n_data);
-  bufferSize_ = sizeof(float) * n_data;
-  void* r = memcpy(last->data(), data, bufferSize_);
-  if (!r) {
-    std::cout << "Couldn't copy vertex data to container" << std::endl;
-    return false;
-  }
+bool vkdev::Buffer::createBuffer(const VkBufferUsageFlags& usage, 
+                                 const VkMemoryPropertyFlags& properties, 
+                                 const VkDeviceSize& size) {
 
-  return true;
-}
-
-bool vkdev::VertexBuffer::createVertexBuffer(const Device& device) {
-  if (bufferId_ < 0) {
-    std::cout << "Vertex data has not been initialized.\
-                  Couldn't create vertex data" << std::endl;
-    return false;
-  }
-
-  VkDeviceSize d_size = bufferSize_;
   VkBufferCreateInfo buffer_ci {
     VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
     nullptr,
     0,
-    static_cast<VkDeviceSize>(bufferSize_),
-    VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,  //Buffer usage for vertex data
-    VK_SHARING_MODE_EXCLUSIVE,          //Used by only one queue at a time
-    0,                                  //number of queues that will access buffer
-    nullptr                             //indices of all queues that will access buffer
+    size,
+    usage,                              
+    VK_SHARING_MODE_EXCLUSIVE,
+    0,
+    nullptr
   };
 
-  const VkDevice& hdevice = device.getDeviceHandle();
+  bufferSize_ = size;
+  const VkDevice& hdevice = ResourceManager::GetResources()->device_;
   VkResult r = vkCreateBuffer(hdevice, 
                               &buffer_ci, 
                               nullptr, 
@@ -63,8 +48,32 @@ bool vkdev::VertexBuffer::createVertexBuffer(const Device& device) {
     return false;
   }
 
-  if (!allocateBufferMemory(device)) {
-    return false;
+  VkMemoryRequirements buffer_mem_requirements;
+  vkGetBufferMemoryRequirements(hdevice, 
+                                bufferHandle_, 
+                                &buffer_mem_requirements);
+
+  VkPhysicalDeviceMemoryProperties memory_properties;
+  vkGetPhysicalDeviceMemoryProperties(ResourceManager::GetResources()->hardDevice_, &memory_properties);
+
+  for (size_t i = 0; i < memory_properties.memoryTypeCount; i++) {
+    //Check for minimum buffer memory requirements against physical device properties
+    if ( (buffer_mem_requirements.memoryTypeBits & (1 << i)) && 
+       (memory_properties.memoryTypes[i].propertyFlags & properties) == properties) {
+      
+      VkMemoryAllocateInfo allocate_info {
+        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        nullptr,
+        buffer_mem_requirements.size,
+        static_cast<uint32_t>(i)
+      };
+
+      VkResult r = vkAllocateMemory(hdevice, &allocate_info, nullptr, &bufferMemory_);
+      if (r != VK_SUCCESS) {
+        std::cout << "Couldn't allocate buffer memory" << std::endl;
+        return false;
+      }
+    }
   }
 
   r = vkBindBufferMemory(hdevice, bufferHandle_, bufferMemory_, 0);
@@ -73,65 +82,110 @@ bool vkdev::VertexBuffer::createVertexBuffer(const Device& device) {
     return false;
   }
 
-  void* mapped_memory;
-  r = vkMapMemory(hdevice, bufferMemory_, 0, bufferSize_, 0, &mapped_memory);
+  return false;
+}
+
+/****************************************************************************/
+
+bool vkdev::Buffer::mapBufferMemory(const void* data, const VkDeviceSize& size) {
+
+  const VkDevice& hdevice = ResourceManager::GetResources()->device_;
+  //InternalBuffer& ib = ResourceManager::GetResources()->userBuffers_[bufferId_];
+  
+  VkResult r = vkMapMemory(hdevice, bufferMemory_, 0, size, 0, &mapped_);
   if (r != VK_SUCCESS) {
     std::cout << "Could not map vertex buffer memory" << std::endl;
     return false;
   }
 
-  float* vertex_data = ResourceManager::GetResources()->vertexData_[bufferId_].data();
-  memcpy(mapped_memory, vertex_data, bufferSize_);
+  //float* vertex_data = ResourceManager::GetResources()->vertexData_.data();
+  memcpy(mapped_, data, size);
 
   VkMappedMemoryRange flush_range = {
     VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
     nullptr,
     bufferMemory_,
     0,
-    VK_WHOLE_SIZE
-  }
+    size
+  };
 
+  vkFlushMappedMemoryRanges(hdevice, 1, &flush_range);
+  vkUnmapMemory(hdevice, bufferMemory_);
   
   return true;
 }
 
+/****************************************************************************/
 
-bool vkdev::VertexBuffer::allocateBufferMemory(const Device& device) {
-  VkMemoryRequirements buffer_mem_requirements;
-  vkGetBufferMemoryRequirements(device.getDeviceHandle(), 
-                                bufferHandle_, 
-                                &buffer_mem_requirements);
+bool vkdev::Buffer::mapGPUMemory() {
+  const VkDevice& hdevice = ResourceManager::GetResources()->device_;
+  
+  VkResult r = vkMapMemory(hdevice, bufferMemory_, 0, bufferSize_, 0, &mapped_);
+  if (r != VK_SUCCESS) {
+    std::cout << "Could not map vertex buffer memory" << std::endl;
+    return false;
+  }
+  return true;
+}
 
-  VkPhysicalDeviceMemoryProperties memory_properties;
-  vkGetPhysicalDeviceMemoryProperties(device.getCurrentPhysicalDevice(), &memory_properties);
+/****************************************************************************/
 
-  for (size_t i = 0; i < memory_properties.memoryTypeCount; i++) {
-    //Check for minimum buffer memory requirements against physical device properties
-    if ( (buffer_mem_requirements.memoryTypeBits & (1 << i)) && 
-       (memory_properties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)) {
-      
-      VkMemoryAllocateInfo allocate_info {
-        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-        nullptr,
-        buffer_mem_requirements.size,
-        i
-      };
+void vkdev::Buffer::updateMappedMemory(const void* data, const VkDeviceSize& size, const size_t& offset) {
+  auto mapped_offset = reinterpret_cast<uint64_t>(mapped_) + offset;
+  auto data_offset = reinterpret_cast<uint64_t>(data) + offset;
 
-      VkResult r = vkAllocateMemory(device.getDeviceHandle(), &allocate_info, nullptr, &bufferMemory_);
-      if (r == VK_SUCCESS) {
-        return true;
-      }
-    }
+  memcpy(reinterpret_cast<void*>(mapped_offset), reinterpret_cast<void*>(data_offset), size);
+}
+
+/****************************************************************************/
+
+void vkdev::Buffer::FlushGPUMemory(const VkDeviceSize& size, const size_t& offset) {
+  const VkDevice& hdevice = ResourceManager::GetResources()->device_;
+  VkMappedMemoryRange flush_range = {
+    VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
+    nullptr,
+    bufferMemory_,
+    offset,
+    size
+  };
+
+  vkFlushMappedMemoryRanges(hdevice, 1, &flush_range);
+}
+
+/****************************************************************************/
+
+void vkdev::Buffer::unmapGPUMemory(const VkDeviceSize& size, const size_t& offset) {
+  const VkDevice& hdevice = ResourceManager::GetResources()->device_;
+  FlushGPUMemory(size, offset);
+  vkUnmapMemory(hdevice, bufferMemory_);
+}
+
+/****************************************************************************/
+
+bool vkdev::Buffer::destroyBuffer() {
+  const VkDevice& hdevice = ResourceManager::GetResources()->device_;
+  if (bufferHandle_ != VK_NULL_HANDLE) {
+    vkDestroyBuffer(hdevice, bufferHandle_, nullptr);
+    bufferHandle_ = VK_NULL_HANDLE;
   }
 
-  std::cout << "Couldn't allocate buffer memory" << std::endl;
+  if (bufferMemory_ != VK_NULL_HANDLE) {
+    vkFreeMemory(hdevice, bufferMemory_, nullptr);
+    bufferMemory_ = VK_NULL_HANDLE;
+    return true;
+  }
+
   return false;
 }
 
+/****************************************************************************/
 
-bool vkdev::VertexBuffer::destroyVertexBuffer() {
-
-
-    return true;
+const VkBuffer& vkdev::Buffer::getHandle() const {
+  return bufferHandle_;
 }
 
+/****************************************************************************/
+
+const uint64_t& vkdev::Buffer::getBufferSize() const {
+  return bufferSize_;
+}

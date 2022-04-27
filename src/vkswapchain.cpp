@@ -3,6 +3,8 @@
 #include "window.h"
 #include "vkfunctions.h"
 #include "command_buffer.h"
+#include "internal_resources.h"
+#include "vkhelpers.h"
 #include <iostream>
 #include <vector>
 
@@ -87,27 +89,37 @@ VkPresentModeKHR GetPresentMode(const std::vector<VkPresentModeKHR>& present_mod
 
 vkdev::SwapChain::SwapChain() {
   swapchain_ = VK_NULL_HANDLE;
-  renderingFinished_ = VK_NULL_HANDLE;
   imageFormat_ = VK_FORMAT_UNDEFINED;
-  deviceOwner_ = nullptr;
+  //deviceOwner_ = nullptr;
 }
 
 /***********************************************************************************************/
 
 vkdev::SwapChain::~SwapChain() {
+  destroySwapchain();
+}
+
+/***********************************************************************************************/
+
+bool vkdev::SwapChain::destroySwapchain() {
   if (swapchain_ != VK_NULL_HANDLE) {
-    vkDeviceWaitIdle(deviceOwner_->getDeviceHandle());
-    vkDestroySemaphore(deviceOwner_->getDeviceHandle(), renderingFinished_, nullptr);
-    vkDestroySwapchainKHR(deviceOwner_->getDeviceHandle(), swapchain_, nullptr);
+    const DeviceHandle& deviceh = ResourceManager::GetResources()->device_;
+    vkDeviceWaitIdle(deviceh);
+    for (auto& imgvw : scImageView_) {
+      vkDestroyImageView(deviceh, imgvw, nullptr);
+    }
+    vkDestroySwapchainKHR(deviceh, swapchain_, nullptr);
     swapchain_ = VK_NULL_HANDLE;
+    return true;
   }
+
+  return false;
 }
 
 /***********************************************************************************************/
 
 bool vkdev::SwapChain::createSwapchain(const Device& device, const Window& window, uint32_t n_images) {
 
-deviceOwner_ = &device;
 /******************************SURFACE CAPABILITIES***************************************/
   VkSurfaceCapabilitiesKHR capabilities;
   VkResult r = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device.getCurrentPhysicalDevice(), window.getSurface(), &capabilities);
@@ -180,33 +192,40 @@ deviceOwner_ = &device;
   swch_create_info.imageUsage = usage;
   swch_create_info.preTransform = GetSwapchainTransform(capabilities);
   swch_create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-  swch_create_info.presentMode = present;
+  swch_create_info.presentMode = present;//VK_PRESENT_MODE_IMMEDIATE_KHR;
   swch_create_info.clipped = VK_TRUE;
 
-  r = vkCreateSwapchainKHR(device.getDeviceHandle(), &swch_create_info, nullptr, &swapchain_);
+  const DeviceHandle& deviceh = ResourceManager::GetResources()->device_;
+  r = vkCreateSwapchainKHR(deviceh, &swch_create_info, nullptr, &swapchain_);
 
-  VkSemaphoreCreateInfo semaphore_info{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
-  vkCreateSemaphore(device.getDeviceHandle(), &semaphore_info, nullptr, &renderingFinished_);
 
   if (r != VK_SUCCESS) {
     std::cout << "An error ocurred during swapchain creation" << std::endl;
     return false;
   }
 
+  //Creating Image Views for use in framebuffers
+  std::vector<VkImage> vimg;
+  getSwapchainImages(vimg);
+  scImageView_.resize(vimg.size());
+  for (uint32_t i = 0; i < vimg.size(); i++) 
+    createImageView(deviceh, imageFormat_, vimg[i], scImageView_[i]);
+  
   return true;
 }
 
 
 bool vkdev::SwapChain::getSwapchainImages(std::vector<VkImage>& img) {
   uint32_t image_count;
-  VkResult r = vkGetSwapchainImagesKHR(deviceOwner_->getDeviceHandle(), swapchain_, &image_count, nullptr);
+  const DeviceHandle& deviceh = ResourceManager::GetResources()->device_;
+  VkResult r = vkGetSwapchainImagesKHR(deviceh, swapchain_, &image_count, nullptr);
   if (r != VK_SUCCESS) {
     std::cout << "Couldn't get swapchain image number" << std::endl;
     return false;
   }
   
   img.resize(image_count);
-  r = vkGetSwapchainImagesKHR(deviceOwner_->getDeviceHandle(), swapchain_, &image_count, &img[0]);
+  r = vkGetSwapchainImagesKHR(deviceh, swapchain_, &image_count, &img[0]);
   if (r != VK_SUCCESS) {
     std::cout << "Couldn't get swapchain images" << std::endl;
     return false;
@@ -215,55 +234,62 @@ bool vkdev::SwapChain::getSwapchainImages(std::vector<VkImage>& img) {
   return true;
 }
 
-int32_t vkdev::SwapChain::getImageFormat() const{
+const std::vector<ViewHandle>& vkdev::SwapChain::getSwapchainImageViews() const {
+  return scImageView_;
+}
+
+ImageFormat vkdev::SwapChain::getImageFormat() const{
   return imageFormat_;
 }
 
-
-bool vkdev::SwapChain::presentNextImage(const CommandBuffer& commands) {
-  uint32_t image_index;
-  const Device::DeviceQueue* queue = deviceOwner_->getDeviceQueue();
-  VkResult r = vkAcquireNextImageKHR(deviceOwner_->getDeviceHandle(), 
-                                     swapchain_, UINT64_MAX, 
-                                     queue->imageAvailableSemaphore_,
-                                     VK_NULL_HANDLE, &image_index);
-  
-  if (r != VK_SUCCESS && r != VK_SUBOPTIMAL_KHR) {
-    std::cout << "Problem ocurred during swapchain acquisition!" << std::endl;
-    return false;
-  }
-
-  VkPipelineStageFlags wait_dst_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
-  VkSubmitInfo submit_info{VK_STRUCTURE_TYPE_SUBMIT_INFO};
-  submit_info.waitSemaphoreCount = 1;
-  submit_info.pWaitSemaphores = &queue->imageAvailableSemaphore_;
-  submit_info.pWaitDstStageMask = &wait_dst_stage_mask;
-  submit_info.commandBufferCount = 1;
-  submit_info.pCommandBuffers = &commands.getCommandBuffer(image_index);
-  submit_info.signalSemaphoreCount = 1;
-  submit_info.pSignalSemaphores = &renderingFinished_;
-
-  r = vkQueueSubmit(queue->queue_, 1, &submit_info, VK_NULL_HANDLE);
-  if (r != VK_SUCCESS) {
-    std::cout << "Error submitting command information to the queue";
-    return false;
-  }
-
-  VkPresentInfoKHR present_info {VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
-  present_info.waitSemaphoreCount = 1;
-  present_info.pWaitSemaphores = &renderingFinished_;
-  present_info.swapchainCount = 1;
-  present_info.pSwapchains = &swapchain_;
-  present_info.pImageIndices = &image_index;
-
-  r = vkQueuePresentKHR(queue->queue_, &present_info);
-  if (r != VK_SUCCESS) {
-    std::cout << "Problem ocurred during image presentation!" << std::endl;
-    return false;
-  }
-
-  return true;
+const VkSwapchainKHR& vkdev::SwapChain::getHandle() const {
+  return swapchain_;
 }
+
+// bool vkdev::SwapChain::presentNextImage(const CommandBuffer& commands) {
+//   uint32_t image_index;
+//   const Device::DeviceQueue* queue = deviceOwner_->getDeviceQueue();
+//   VkResult r = vkAcquireNextImageKHR(deviceOwner_->getDeviceHandle(), 
+//                                      swapchain_, UINT64_MAX, 
+//                                      queue->imageAvailableSemaphore_,
+//                                      VK_NULL_HANDLE, &image_index);
+  
+//   if (r != VK_SUCCESS && r != VK_SUBOPTIMAL_KHR) {
+//     std::cout << "Problem ocurred during swapchain acquisition!" << std::endl;
+//     return false;
+//   }
+
+//   VkPipelineStageFlags wait_dst_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+//   VkSubmitInfo submit_info{VK_STRUCTURE_TYPE_SUBMIT_INFO};
+//   submit_info.waitSemaphoreCount = 1;
+//   submit_info.pWaitSemaphores = &queue->imageAvailableSemaphore_;
+//   submit_info.pWaitDstStageMask = &wait_dst_stage_mask;
+//   submit_info.commandBufferCount = 1;
+//   submit_info.pCommandBuffers = &commands.getCommandBuffer(image_index);
+//   submit_info.signalSemaphoreCount = 1;
+//   submit_info.pSignalSemaphores = &renderingFinished_;
+
+//   r = vkQueueSubmit(queue->queue_, 1, &submit_info, VK_NULL_HANDLE);
+//   if (r != VK_SUCCESS) {
+//     std::cout << "Error submitting command information to the queue";
+//     return false;
+//   }
+
+//   VkPresentInfoKHR present_info {VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
+//   present_info.waitSemaphoreCount = 1;
+//   present_info.pWaitSemaphores = &renderingFinished_;
+//   present_info.swapchainCount = 1;
+//   present_info.pSwapchains = &swapchain_;
+//   present_info.pImageIndices = &image_index;
+
+//   r = vkQueuePresentKHR(queue->queue_, &present_info);
+//   if (r != VK_SUCCESS) {
+//     std::cout << "Problem ocurred during image presentation!" << std::endl;
+//     return false;
+//   }
+
+//   return true;
+// }
 
 
 

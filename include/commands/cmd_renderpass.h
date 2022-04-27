@@ -17,10 +17,9 @@ namespace vkdev {
       void record(const VkCommandBuffer& buffer) const override;
 
     private:
-      const VkFramebuffer* attachmentRef_;
+      const Framebuffer* attachmentRef_;
       const VkRenderPass* renderPass_;
       VkClearColorValue clearColor_;
-      glm::uvec2 size_;
   };
 
   class RenderpassEndCmd : public Command {

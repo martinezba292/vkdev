@@ -4,22 +4,32 @@
 #include "common_def.h"
 
 namespace vkdev {
-class Device;
-class VertexBuffer {
-    public:
-      VertexBuffer();
-      ~VertexBuffer();
-       bool loadData(const float* data, const uint32_t& n_data);
-       bool createVertexBuffer(const Device& device);
-       bool destroyVertexBuffer(); 
+class Buffer {
+  public:
+    Buffer();
+    Buffer(const Buffer& buffer);
+    ~Buffer(){}
+    // const uint32_t getId() const;
+    // bool loadData(const float* data, const uint32_t& n_data);
 
-    private:
-      bool allocateBufferMemory(const Device& device);
+    bool createBuffer(const VkBufferUsageFlags& usage, 
+                      const VkMemoryPropertyFlags& properties, 
+                      const VkDeviceSize& size);
+    bool mapBufferMemory(const void* data, const VkDeviceSize& size);
+    bool mapGPUMemory();
+    void updateMappedMemory(const void* data, const VkDeviceSize& size, const size_t& offset = 0);
+    void FlushGPUMemory(const VkDeviceSize& size, const size_t& offset = 0);
+    void unmapGPUMemory(const VkDeviceSize& size, const size_t& offset = 0);
+    bool destroyBuffer();
 
-      int32_t bufferId_;
-      uint32_t bufferSize_;
-      VkDeviceMemory bufferMemory_;
-      VkBuffer bufferHandle_;
+    const VkBuffer& getHandle() const;
+    const uint64_t& getBufferSize() const;
+
+  private:
+    VkBuffer bufferHandle_;
+    VkDeviceMemory bufferMemory_;
+    VkDeviceSize bufferSize_;
+    void* mapped_;
  };
 }
 #endif

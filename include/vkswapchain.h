@@ -14,15 +14,18 @@ namespace vkdev {
       ~SwapChain();
 
       bool createSwapchain(const Device& device, const Window& window, uint32_t n_images);
+      bool destroySwapchain();
       bool getSwapchainImages(std::vector<VkImage>& img);
-      int32_t getImageFormat() const;
-      bool presentNextImage(const CommandBuffer& commands);
+      const std::vector<ViewHandle>& getSwapchainImageViews() const;
+      const VkSwapchainKHR& getHandle() const;
+      ImageFormat getImageFormat() const;
+      //bool presentNextImage(const CommandBuffer& commands);
 
     private:
       VkSwapchainKHR swapchain_;
       VkFormat imageFormat_;
-      VkSemaphore renderingFinished_;
-      const Device* deviceOwner_;
+      std::vector<ViewHandle> scImageView_;
+      //const Device* deviceOwner_;
   };
 }
 

@@ -9,23 +9,27 @@
 #include <list>
 #include <functional>
 #include <algorithm>
+#include "internal_resources.h"
+
 
 /****************************************************************************************/
 
 vkdev::Device::Device()
 {
-  device_ = VK_NULL_HANDLE;
-  physDevice_ = VK_NULL_HANDLE;
-  deviceQueue_ = nullptr;
+  auto resources = ResourceManager::GetResources();
+  resources->device_ = VK_NULL_HANDLE;
+  resources->hardDevice_ = VK_NULL_HANDLE;
+  //resources->deviceQueue_ = nullptr;
 }
 
 /****************************************************************************************/
 
 vkdev::Device::Device(const Instance& instance, const Window& window)
 {
-  device_ = VK_NULL_HANDLE;
-  physDevice_ = VK_NULL_HANDLE;
-  deviceQueue_ = nullptr;
+  auto resources = ResourceManager::GetResources();
+  resources->device_ = VK_NULL_HANDLE;
+  resources->hardDevice_ = VK_NULL_HANDLE;
+  //resources->deviceQueue_ = nullptr;
   createDevice(instance, window);
 }
 
@@ -38,15 +42,14 @@ vkdev::Device::~Device()
 
 
 bool vkdev::Device::destroyDevice() {
-    if (device_ != VK_NULL_HANDLE) {
-      vkDeviceWaitIdle(device_);
-      if (deviceQueue_ != nullptr) {
-        vkDestroySemaphore(device_, deviceQueue_->imageAvailableSemaphore_, nullptr);
-        deviceQueue_.reset();
-        deviceQueue_ = nullptr;
-      }
-      vkDestroyDevice(device_, nullptr);
-      device_ = VK_NULL_HANDLE;
+  auto resources = ResourceManager::GetResources();
+    DeviceHandle& device = resources->device_;
+    if (device != VK_NULL_HANDLE) {
+      vkDeviceWaitIdle(device);
+      resources->graphicsQueue_.reset();
+      resources->presentQueue_.reset();
+      vkDestroyDevice(device, nullptr);
+      device = VK_NULL_HANDLE;
       return true;
     }
 
@@ -56,24 +59,30 @@ bool vkdev::Device::destroyDevice() {
 /****************************************************************************************/
 
 const VkDevice& vkdev::Device::getDeviceHandle() const {
-  return device_;
+  return ResourceManager::GetResources()->device_;
 }
 
 /****************************************************************************************/
 
 const VkPhysicalDevice& vkdev::Device::getCurrentPhysicalDevice() const {
-  return physDevice_;
+  return ResourceManager::GetResources()->hardDevice_;
 }
 
 /****************************************************************************************/
 
-const vkdev::Device::DeviceQueue* vkdev::Device::getDeviceQueue() const {
-  return deviceQueue_.get();
+const vkdev::DeviceQueue* vkdev::Device::getGraphicsQueue() const {
+  return ResourceManager::GetResources()->graphicsQueue_.get();
 } 
 
 /****************************************************************************************/
 
-std::shared_ptr<vkdev::Device::DeviceQueue> vkdev::Device::findQueueFamilyWithProperties(const VkPhysicalDevice& device, const QueueFamilyFlags support, 
+const vkdev::DeviceQueue* vkdev::Device::getPresentQueue() const {
+  return ResourceManager::GetResources()->presentQueue_.get();
+} 
+
+/****************************************************************************************/
+
+std::unique_ptr<vkdev::DeviceQueue> vkdev::Device::findQueueFamilyWithProperties(const VkPhysicalDevice& device, const QueueFamilyFlags support, 
                                                                                          const uint16_t min_queue, const Window* window_handle/* = nullptr*/) {
   uint32_t queue_family_count = 0;
   vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, nullptr);
@@ -118,11 +127,11 @@ std::shared_ptr<vkdev::Device::DeviceQueue> vkdev::Device::findQueueFamilyWithPr
   
   if (family_index == UINT32_MAX) return nullptr;
   DeviceQueue new_queue;
-  new_queue.currentDevice_= device;
+  //new_queue.currentDevice_ = &device;
   new_queue.queueCount_ = min_queue;
   new_queue.queueFamily_ = family_index;
 
-  return std::make_shared<DeviceQueue>(new_queue);
+  return std::make_unique<DeviceQueue>(new_queue);
 }
 
 /****************************************************************************************/
@@ -173,9 +182,9 @@ uint32_t vkdev::Device::ratePhysicalDeviceProperties(const VkPhysicalDevice& dev
   uint32_t device_score = device_properties.limits.maxImageDimension2D + type_score;
   
   //Looking for queue families that supports graphics and present operations with at least 3 queues available.
-  deviceQueue_ = findQueueFamilyWithProperties(device, (SUPPORT_GRAPHICS_OP | SUPPORT_PRESENT_OP), 3, &window_surface);
+  ResourceManager::GetResources()->graphicsQueue_ = findQueueFamilyWithProperties(device, (SUPPORT_GRAPHICS_OP | SUPPORT_PRESENT_OP), 2, &window_surface);
   
-  if (!deviceQueue_) {
+  if (!ResourceManager::GetResources()->graphicsQueue_) {
     std::cout << "Couldn't find any queue family with required operations in device " << 
                   device_properties.deviceName << std::endl;
     return device_score >> 1;
@@ -191,7 +200,10 @@ uint32_t vkdev::Device::ratePhysicalDeviceProperties(const VkPhysicalDevice& dev
 
 bool vkdev::Device::createDevice(const Instance& instance, const Window& window)
 {
-  if (device_) {
+  auto resources = ResourceManager::GetResources();
+  DeviceHandle& device = resources->device_;
+
+  if (device) {
     std::cout << "Device is already created" << std::endl;
     return false;
   }
@@ -225,16 +237,21 @@ bool vkdev::Device::createDevice(const Instance& instance, const Window& window)
     return false;
   }
 
-  physDevice_ = selected_device;
-  float max_priority = 1.1f;
-  std::vector<float> queue_priority(deviceQueue_->queueCount_);
-  for (size_t i = 0; i < deviceQueue_->queueCount_; i++) 
-    queue_priority[i] = max_priority-=0.1f;
+  DeviceQueue* q = resources->graphicsQueue_.get();
+
+
+  auto& pdevice = ResourceManager::GetResources()->hardDevice_;
+  pdevice = selected_device;
+
+  float max_priority = 1.5f;
+  std::vector<float> queue_priority(q->queueCount_);
+  for (size_t i = 0; i < queue_priority.size(); i++) 
+    queue_priority[i] = (max_priority-=0.5f);
 
   VkDeviceQueueCreateInfo queue_create_info{};
   queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-  queue_create_info.queueFamilyIndex = deviceQueue_->queueFamily_;;
-  queue_create_info.queueCount = deviceQueue_->queueCount_;
+  queue_create_info.queueFamilyIndex = q->queueFamily_;
+  queue_create_info.queueCount = q->queueCount_;
   queue_create_info.pQueuePriorities = &queue_priority[0];
 
   std::vector<const char*> extensions {
@@ -248,18 +265,24 @@ bool vkdev::Device::createDevice(const Instance& instance, const Window& window)
   device_create_info.enabledExtensionCount = extensions.size();
   device_create_info.ppEnabledExtensionNames = &extensions[0];
 
-  if (vkCreateDevice(physDevice_, &device_create_info, nullptr, &device_) != VK_SUCCESS) {
+  if (vkCreateDevice(pdevice, &device_create_info, nullptr, &device) != VK_SUCCESS) {
     std::cout << "Couldn't create a vulkan device" << std::endl;
     return false;
   }
 
-  if (!LoadDeviceLevelEntryPoints(device_)) {
+  if (!LoadDeviceLevelEntryPoints(device)) {
     return false;
   }
+
+  DeviceQueue* presentq = ResourceManager::GetResources()->presentQueue_.get();
+  presentq->queueCount_ = q->queueCount_;
+  presentq->queueFamily_ = q->queueFamily_;
   
-  vkGetDeviceQueue(device_, deviceQueue_->queueFamily_, 0, &deviceQueue_->queue_);
-  VkSemaphoreCreateInfo semaphore_info{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
-  vkCreateSemaphore(device_, &semaphore_info, nullptr, &deviceQueue_->imageAvailableSemaphore_);
+  vkGetDeviceQueue(device, q->queueFamily_, 0, &q->queue_);
+  vkGetDeviceQueue(device, presentq->queueFamily_, 1, &presentq->queue_);
+  
+  // VkSemaphoreCreateInfo semaphore_info{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+  // vkCreateSemaphore(device_, &semaphore_info, nullptr, &deviceQueue_->imageAvailableSemaphore_);
 
   return true;
 }

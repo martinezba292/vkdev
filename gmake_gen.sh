@@ -1,1 +1,0 @@
-./GENie/genie gmake
