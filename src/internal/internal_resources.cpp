@@ -5,8 +5,7 @@
 #include "vkhelpers.h"
 #include "vkfunctions.h"
 #include "lodepng.h"
-#include "glm.hpp"
-//#include "vkbuffer.h"
+#include "ivector2.hpp"
 
 std::shared_ptr<vkdev::ResourceManager::InternalResources> vkdev::ResourceManager::Resources_ = nullptr;
 
@@ -151,7 +150,7 @@ bool vkdev::ResourceManager::CreateTextures(CommandBuffer& cmd) {
     VkDeviceSize total_size = 0;
     std::vector<unsigned char> texture_buffer;
     std::vector<VkDeviceSize> offsets;
-    std::vector<glm::uvec2> extent;
+    std::vector<lau::IVector2D> extent;
   }Textcp;
 
   Textcp.texture_buffer.reserve(100000000);
@@ -166,7 +165,7 @@ bool vkdev::ResourceManager::CreateTextures(CommandBuffer& cmd) {
     Textcp.texture_buffer.insert(Textcp.texture_buffer.end(), texture_data.begin(), texture_data.end());
     Textcp.offsets.push_back(Textcp.total_size);
     Textcp.total_size += (w * h) * sizeof(float);
-    Textcp.extent.push_back({w, h});
+    Textcp.extent.push_back(lau::IVector2D(w, h));
   }
 
   Buffer staging_buffer;
@@ -190,7 +189,7 @@ bool vkdev::ResourceManager::CreateTextures(CommandBuffer& cmd) {
   const VkCommandBuffer& cmdhandle = cmd.getCommandBuffer();
   vkBeginCommandBuffer(cmdhandle, &cmd_begin_ci);
   for (auto& t : Resources_->textures_) {
-    createImage(t.img_, ext->x, ext->y, VK_IMAGE_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 
+    createImage(t.img_, ext->x_, ext->y_, VK_IMAGE_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 
                   VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
 
     allocateImageMemory(t.imgMemory_, t.img_, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
@@ -239,8 +238,8 @@ bool vkdev::ResourceManager::CreateTextures(CommandBuffer& cmd) {
         0
       },
       {
-        ext->x,
-        ext->y,
+        static_cast<uint32_t>(ext->x_),
+        static_cast<uint32_t>(ext->y_),
         1
       }
     };

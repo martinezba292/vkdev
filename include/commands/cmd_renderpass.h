@@ -2,7 +2,6 @@
 #define __RENDERPASS_CMD_H__ 1
 
 #include "vkcommand.h"
-#include "glm.hpp"
 #include "vkfunctions.h"
 
 namespace vkdev {

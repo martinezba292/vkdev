@@ -3,7 +3,6 @@
 
 #include "vkcommand.h"
 #include "vulkan/vulkan.h"
-#include "vec4.hpp"
 
 namespace vkdev {
   class ClearCmd : public Command {

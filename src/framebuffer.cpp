@@ -13,7 +13,7 @@ vkdev::Framebuffer::Framebuffer() {
   // depthMem_ = VK_NULL_HANDLE;
   // depthView_ = VK_NULL_HANDLE;
   //deviceOwner_ = nullptr;
-  fbSize_ = {0, 0};
+  fbSize_ = lau::IVector2D(0, 0);
 }
 
 vkdev::Framebuffer::~Framebuffer() {
@@ -25,7 +25,7 @@ const VkFramebuffer& vkdev::Framebuffer::getHandle() const {
   return framebuffer_;
 }
 
-glm::uvec2 vkdev::Framebuffer::getFramebufferSize() const {
+lau::IVector2D vkdev::Framebuffer::getFramebufferSize() const {
   return fbSize_;
 }
 
@@ -79,7 +79,8 @@ bool vkdev::Framebuffer::createFramebuffer(const ImageHandle& src,
   framebuffer_ci.width = width;
   framebuffer_ci.height = height;
 
-  fbSize_ = {width, height};
+  fbSize_.x_ = static_cast<int32_t>(width);
+  fbSize_.y_ = static_cast<int32_t>(height);
 
   VkResult r = vkCreateFramebuffer(*deviceOwner_, &framebuffer_ci, nullptr, &framebuffer_);
   if (r != VK_SUCCESS) {
@@ -111,7 +112,8 @@ bool vkdev::Framebuffer::createFramebuffer(const ViewHandle& color_attachment,
   framebuffer_ci.width = width;
   framebuffer_ci.height = height;
 
-  fbSize_ = {width, height};
+  fbSize_.x_ = static_cast<int32_t>(width);
+  fbSize_.y_ = static_cast<int32_t>(height);
 
   const DeviceHandle& deviceh = ResourceManager::GetResources()->device_;
   VkResult r = vkCreateFramebuffer(deviceh, &framebuffer_ci, nullptr, &framebuffer_);

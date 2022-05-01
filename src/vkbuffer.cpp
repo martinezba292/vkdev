@@ -3,7 +3,6 @@
 #include "vkfunctions.h"
 #include <iostream>
 #include <string.h>
-#include "glm.hpp"
 
 
 vkdev::Buffer::Buffer() {

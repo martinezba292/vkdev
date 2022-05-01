@@ -1,7 +1,6 @@
 #include "vkhelpers.h"
 #include "vkfunctions.h"
 #include "pipeline_resources.h"
-#include "glm.hpp"
 #include <iostream>
 #include <string.h>
 #include <fstream>
@@ -210,7 +209,9 @@ bool vkdev::createShaderModule(const VkDevice& device, const char* path, VkShade
 void vkdev::setInputDescriptors(const uint32_t& binding, 
                                 const VertexParams& vparams,
                                 VertexInputDescriptors& descriptors) {
-  uint32_t stride = vparams * sizeof(glm::vec3);
+  
+  uint32_t dim = (sizeof(float) * 3);
+  uint32_t stride = (vparams * dim);
   if (vparams > VertexParams_3V_3N) 
     stride -= sizeof(float);
 
@@ -227,7 +228,7 @@ void vkdev::setInputDescriptors(const uint32_t& binding,
       i,
       binding,
       formats[i],
-      static_cast<uint32_t>(sizeof(glm::vec3) * i)
+      static_cast<uint32_t>(dim * i)
     };
   }
 }

@@ -11,7 +11,7 @@ set(INC_PATH "${CMAKE_CURRENT_LIST_DIR}/include")
 
 configure_file("${INC_PATH}/vkdevconfig.h.in" "${INC_PATH}/vkdevconfig.h")
 
-set(IMG_LIB "${CMAKE_CURRENT_LIST_DIR}/deps/lodepng/lodepng.cpp")
+set(LODE_PNG "${CMAKE_CURRENT_LIST_DIR}/deps/lodepng/lodepng.cpp")
 
 set(IMGUI_PATH "${CMAKE_CURRENT_LIST_DIR}/deps/imgui")
 set(IMGUI "${IMGUI_PATH}/imgui.cpp"
@@ -43,13 +43,7 @@ add_library(VKDEV "${SRC_PATH}/vkdevice.cpp"
                   "${SRC_PATH}/commands/cmd_bindbuffer.cpp"
                   "${SRC_PATH}/commands/cmd_binddescriptor.cpp"
                   #"${SRC_PATH}/commands/cmd_drawUI.cpp"
-                  "${IMG_LIB}"
-                #   "${IMGUI_PATH}/imgui.cpp"
-                #   "${IMGUI_PATH}/imgui_draw.cpp"
-                #   "${IMGUI_PATH}/imgui_widgets.cpp"
-                #   "${IMGUI_PATH}/imgui_demo.cpp"
-                #   "${IMGUI_PATH}/backends/imgui_impl_glfw.cpp"
-                #   "${IMGUI_PATH}/backends/imgui_impl_vulkan.cpp")
+                  "${LODE_PNG}"
                   "${IMGUI}")
 
 
@@ -70,6 +64,9 @@ ENDIF()
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/deps/glfw")
 target_link_libraries(VKDEV PUBLIC GLFW)
 
+add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/deps/LinearAlgebraUtils")
+target_link_libraries(VKDEV PUBLIC LAU)
+
 #Platform detection
 IF (CMAKE_SYSTEM_NAME STREQUAL Windows)
 add_compile_definitions(VK_USE_PLATFORM_WIN32_KHR)
@@ -81,8 +78,9 @@ add_compile_definitions(IMGUI_IMPL_VULKAN_NO_PROTOTYPES)
 target_include_directories(VKDEV PUBLIC 
                             "${INC_PATH}" 
                             "${SRC_PATH}/internal"
-					        "${CMAKE_CURRENT_LIST_DIR}/deps/vulkan/Include"
+					                  "${CMAKE_CURRENT_LIST_DIR}/deps/vulkan/Include"
                             "${CMAKE_CURRENT_LIST_DIR}/deps/glfw/include/GLFW"
-                            "${CMAKE_CURRENT_LIST_DIR}/deps/GLM/glm"
+                            "${CMAKE_CURRENT_LIST_DIR}/deps/LinearAlgebraUtils/include/"
+                            #"${CMAKE_CURRENT_LIST_DIR}/deps/GLM/glm"
                             "${IMGUI_PATH}"
                             "${CMAKE_CURRENT_LIST_DIR}/deps/lodepng")

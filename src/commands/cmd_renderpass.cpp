@@ -35,7 +35,8 @@ void vkdev::RenderpassBeginCmd::record(const VkCommandBuffer& buffer) const {
         0, 0
       },
       {
-        size.x, size.y
+        static_cast<uint32_t>(size.x_), 
+        static_cast<uint32_t>(size.y_)
       }
     },
     static_cast<uint32_t>(clear.size()),

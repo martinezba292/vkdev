@@ -2,8 +2,9 @@
 #define __FRAMEBUFFER_H__ 1
 
 #include "common_def.h"
-#include <vector>
-#include "glm.hpp"
+// #include <vector>
+// #include "glm.hpp"
+#include "ivector2.hpp"
 
 namespace vkdev {
   struct DepthResources {
@@ -30,17 +31,18 @@ namespace vkdev {
       //bool createDepthResources();
       //void destroyDepthResources();
       const VkFramebuffer& getHandle() const;
-      glm::uvec2 getFramebufferSize() const;
+      lau::IVector2D getFramebufferSize() const;
       bool destroyFramebuffer();
       bool softDestroy();
       
     private:
       VkFramebuffer framebuffer_;
       ViewHandle framebufferView_;
+      lau::IVector2D fbSize_;
       //VkImage depthImg_;
       //ViewHandle depthView_; 
       //VkDeviceMemory depthMem_;
-      glm::uvec2 fbSize_;
+      //glm::uvec2 fbSize_;
       //const DeviceHandle* deviceOwner_;
   };
 }
