@@ -11,7 +11,7 @@
 vkdev::Window::Window(Instance& vkinstance) {
   window_ = nullptr;
   surface_ = VK_NULL_HANDLE;
-  close_ = 0;
+  //close_ = 0;
   app_instance = &vkinstance;
 }
 
@@ -66,11 +66,11 @@ bool vkdev::Window::createWindow() {
   return true;
 }
 
-void vkdev::Window::input() {
-  glfwPollEvents();
-  close_ = glfwGetKey(window_, GLFW_KEY_ESCAPE);
-}
+// void vkdev::Window::input() {
+//   glfwPollEvents();
+//   close_ = glfwGetKey(window_, GLFW_KEY_ESCAPE);
+// }
 
-bool vkdev::Window::windowShouldClose() const {
-  return (close_ == GLFW_PRESS);
-}
+// bool vkdev::Window::windowShouldClose() const {
+//   return (close_ == GLFW_PRESS);
+// }

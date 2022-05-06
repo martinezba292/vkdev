@@ -119,10 +119,8 @@ void vkdev::UI::updateFps(float fps) {
 
 
 void vkdev::UI::drawUI() const {
-
-  //ImGui::ShowDemoWindow();
   int32_t width = 200;
-  ImGui::SetNextWindowPos(ImVec2(WINDOW_W - width,0));
+  ImGui::SetNextWindowPos(ImVec2(WINDOW_W - width, 0));
   ImGui::SetNextWindowSize(ImVec2(width, 50));
   ImGui::Begin("Demo Info");
   ImGui::Text("%.2f ms/frame (%.1d fps)", (1000.0f / fpsCounter_), static_cast<int32_t>(fpsCounter_));

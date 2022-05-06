@@ -12,8 +12,8 @@ class Instance;
       ~Window();
       bool createWindow();
       bool destroyWindow();
-      void input();
-      bool windowShouldClose() const;
+      // void input();
+      // bool windowShouldClose() const;
       const VkSurfaceKHR& getSurface() const;
       const GLFWwindow* getWindow() const;
       
@@ -21,7 +21,7 @@ class Instance;
       GLFWwindow* window_;
       Instance* app_instance;
       VkSurfaceKHR surface_;
-      int32_t close_;
+      //int32_t close_;
     };
 }
 
